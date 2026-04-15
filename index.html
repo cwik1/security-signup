@@ -205,6 +205,11 @@
       border-color: #666;
     }
 
+    .modal-input:disabled {
+      background: #f5f5f5;
+      cursor: not-allowed;
+    }
+
     .modal-buttons {
       display: flex;
       gap: 8px;
@@ -218,6 +223,12 @@
       cursor: pointer;
       font-weight: 600;
       border-radius: 4px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .btn-primary {
@@ -225,7 +236,7 @@
       color: white;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: #555;
     }
 
@@ -234,7 +245,7 @@
       color: white;
     }
 
-    .btn-danger:hover {
+    .btn-danger:hover:not(:disabled) {
       background: #c82333;
     }
 
@@ -243,7 +254,7 @@
       color: white;
     }
 
-    .btn-secondary:hover {
+    .btn-secondary:hover:not(:disabled) {
       background: #5a6268;
     }
 
@@ -294,12 +305,34 @@
       background: #c82333;
     }
 
+    .all-names-list li .btn-remove-small:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     footer {
       background: white;
       padding: 12px;
       margin-top: 12px;
       text-align: center;
       border: 1px solid #e0e0e0;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.6s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     @media (max-width: 600px) {
@@ -339,8 +372,8 @@
       <input type="text" id="signup-name" class="modal-input" placeholder="Enter your name" />
     </div>
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeSignupModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmSignup()">Sign Up</button>
+      <button class="btn btn-secondary" id="signup-cancel-btn" onclick="closeSignupModal()">Cancel</button>
+      <button class="btn btn-primary" id="signup-submit-btn" onclick="confirmSignup()">Sign Up</button>
     </div>
   </div>
 </div>
@@ -353,8 +386,8 @@
       <input type="text" id="remove-verify-name" class="modal-input" placeholder="Enter your name to confirm removal" />
     </div>
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeRemoveModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="confirmRemove()">Remove</button>
+      <button class="btn btn-secondary" id="remove-cancel-btn" onclick="closeRemoveModal()">Cancel</button>
+      <button class="btn btn-danger" id="remove-submit-btn" onclick="confirmRemove()">Remove</button>
     </div>
   </div>
 </div>
@@ -373,7 +406,7 @@
 
 <script>
 // IMPORTANT: Replace this with your deployed Google Apps Script URL
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMdr1JNp42wxIMjLrwn2Ap9WafAHAeo4ODf5wXoT5vQ8NlTCPzsM83dAmGIGnpYwAx/exec';
+const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
 const SHIFTS = [
   { id: 1, time: "7:30 AM – 12:30 PM", day: "Sunday", date: "May 31" },
@@ -390,6 +423,7 @@ let data = {};
 let currentShiftId = null;
 let currentSlotIndex = null;
 let currentPersonName = null;
+let isProcessing = false; // Prevent double-clicks
 
 async function loadData() {
   try {
@@ -485,20 +519,28 @@ function render() {
 }
 
 function openSignupModal(shiftId) {
+  if (isProcessing) return;
+
   const shift = SHIFTS.find(s => s.id === shiftId);
   currentShiftId = shiftId;
   document.getElementById('signup-shift-info').textContent = `${shift.time} (${shift.day}, ${shift.date})`;
   document.getElementById('signup-name').value = '';
+  document.getElementById('signup-name').disabled = false;
+  document.getElementById('signup-submit-btn').disabled = false;
+  document.getElementById('signup-submit-btn').innerHTML = 'Sign Up';
   document.getElementById('signup-modal').classList.add('active');
   document.getElementById('signup-name').focus();
 }
 
 function closeSignupModal() {
+  if (isProcessing) return;
   document.getElementById('signup-modal').classList.remove('active');
   currentShiftId = null;
 }
 
 async function confirmSignup() {
+  if (isProcessing) return; // Prevent double-clicks
+
   const name = document.getElementById('signup-name').value.trim();
 
   if (!name) {
@@ -513,31 +555,62 @@ async function confirmSignup() {
     return;
   }
 
+  // Disable buttons and show loading
+  isProcessing = true;
+  const submitBtn = document.getElementById('signup-submit-btn');
+  const cancelBtn = document.getElementById('signup-cancel-btn');
+  const nameInput = document.getElementById('signup-name');
+
+  submitBtn.disabled = true;
+  cancelBtn.disabled = true;
+  nameInput.disabled = true;
+  submitBtn.innerHTML = 'Signing up<span class="spinner"></span>';
+
+  // Optimistically update UI immediately
   people.push(name);
   data[currentShiftId] = people;
+  render(); // Update UI instantly
 
+  // Save to backend
   const saved = await saveData();
+
   if (saved) {
-    await sendNotification(currentShiftId, 'Signed up', name);
+    // Send notification in background (don't wait)
+    sendNotification(currentShiftId, 'Signed up', name);
     closeSignupModal();
-    render();
   } else {
+    // Rollback on error
+    people.pop();
+    data[currentShiftId] = people;
+    render();
     alert('Error saving signup. Please try again.');
+    submitBtn.disabled = false;
+    cancelBtn.disabled = false;
+    nameInput.disabled = false;
+    submitBtn.innerHTML = 'Sign Up';
   }
+
+  isProcessing = false;
 }
 
 function openRemoveModal(shiftId, slotIndex, personName) {
+  if (isProcessing) return;
+
   currentShiftId = shiftId;
   currentSlotIndex = slotIndex;
   currentPersonName = personName;
 
   document.getElementById('remove-person-name').textContent = personName;
   document.getElementById('remove-verify-name').value = '';
+  document.getElementById('remove-verify-name').disabled = false;
+  document.getElementById('remove-submit-btn').disabled = false;
+  document.getElementById('remove-submit-btn').innerHTML = 'Remove';
   document.getElementById('remove-modal').classList.add('active');
   document.getElementById('remove-verify-name').focus();
 }
 
 function closeRemoveModal() {
+  if (isProcessing) return;
   document.getElementById('remove-modal').classList.remove('active');
   currentShiftId = null;
   currentSlotIndex = null;
@@ -545,6 +618,8 @@ function closeRemoveModal() {
 }
 
 async function confirmRemove() {
+  if (isProcessing) return;
+
   const enteredName = document.getElementById('remove-verify-name').value.trim();
 
   if (!enteredName) {
@@ -557,16 +632,39 @@ async function confirmRemove() {
     return;
   }
 
+  // Disable buttons and show loading
+  isProcessing = true;
+  const submitBtn = document.getElementById('remove-submit-btn');
+  const cancelBtn = document.getElementById('remove-cancel-btn');
+  const nameInput = document.getElementById('remove-verify-name');
+
+  submitBtn.disabled = true;
+  cancelBtn.disabled = true;
+  nameInput.disabled = true;
+  submitBtn.innerHTML = 'Removing<span class="spinner"></span>';
+
+  // Optimistically update UI
+  const removedPerson = data[currentShiftId][currentSlotIndex];
   data[currentShiftId].splice(currentSlotIndex, 1);
+  render();
 
   const saved = await saveData();
+
   if (saved) {
-    await sendNotification(currentShiftId, 'Removed', currentPersonName);
+    sendNotification(currentShiftId, 'Removed', removedPerson);
     closeRemoveModal();
-    render();
   } else {
+    // Rollback on error
+    data[currentShiftId].splice(currentSlotIndex, 0, removedPerson);
+    render();
     alert('Error removing signup. Please try again.');
+    submitBtn.disabled = false;
+    cancelBtn.disabled = false;
+    nameInput.disabled = false;
+    submitBtn.innerHTML = 'Remove';
   }
+
+  isProcessing = false;
 }
 
 function openViewAllModal(shiftId) {
@@ -599,6 +697,8 @@ function closeViewAllModal() {
 }
 
 async function removeFromList(shiftId, index, personName) {
+  if (isProcessing) return;
+
   const enteredName = prompt('To remove this sign-up, please enter your name:');
 
   if (!enteredName) {
@@ -610,16 +710,25 @@ async function removeFromList(shiftId, index, personName) {
     return;
   }
 
+  isProcessing = true;
+
+  // Optimistically update
   data[shiftId].splice(index, 1);
+  render();
+  openViewAllModal(shiftId); // Refresh the modal
 
   const saved = await saveData();
+
   if (saved) {
-    await sendNotification(shiftId, 'Removed', personName);
-    render();
-    openViewAllModal(shiftId);
+    sendNotification(shiftId, 'Removed', personName);
   } else {
     alert('Error removing signup. Please try again.');
+    // Reload data from server
+    await loadData();
+    openViewAllModal(shiftId);
   }
+
+  isProcessing = false;
 }
 
 async function clearAll() {
@@ -636,22 +745,24 @@ async function clearAll() {
 
   if (confirm('Are you sure you want to clear ALL sign-ups? This cannot be undone.')) {
     SHIFTS.forEach(s => data[s.id] = []);
+    render(); // Update UI immediately
+
     const saved = await saveData();
     if (saved) {
-      render();
       alert('All sign-ups have been cleared');
     } else {
       alert('Error clearing signups. Please try again.');
+      await loadData(); // Reload on error
     }
   }
 }
 
 document.getElementById('signup-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeSignupModal();
+  if (e.target === this && !isProcessing) closeSignupModal();
 });
 
 document.getElementById('remove-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeRemoveModal();
+  if (e.target === this && !isProcessing) closeRemoveModal();
 });
 
 document.getElementById('view-all-modal').addEventListener('click', function(e) {
@@ -659,11 +770,11 @@ document.getElementById('view-all-modal').addEventListener('click', function(e) 
 });
 
 document.getElementById('signup-name').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') confirmSignup();
+  if (e.key === 'Enter' && !isProcessing) confirmSignup();
 });
 
 document.getElementById('remove-verify-name').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') confirmRemove();
+  if (e.key === 'Enter' && !isProcessing) confirmRemove();
 });
 
 loadData();
