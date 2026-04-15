@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hagerstown Security Shift Signup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 16px;
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 1.1em;
+    }
+
+    header {
+      background: white;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+    }
+
+    h1 {
+      font-size: 1.4em;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    h2 {
+      font-size: 1em;
+      color: #666;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .info-text {
+      color: #666;
+      font-size: 0.85em;
+      margin-bottom: 4px;
+      padding: 8px 10px;
+      background: #f9f9f9;
+      border-left: 3px solid #999;
+    }
+
+    .subtitle {
+      color: #999;
+      font-size: 0.85em;
+    }
+
+    .shift {
+      background: white;
+      padding: 14px 18px;
+      margin-bottom: 8px;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .shift:hover {
+      background: #fafafa;
+    }
+
+    .shift-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .shift-time {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.95em;
+    }
+
+    .shift-date {
+      font-size: 0.8em;
+      color: #999;
+      margin-left: 8px;
+    }
+
+    .badge {
+      font-size: 0.75em;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .badge:hover {
+      opacity: 0.8;
+    }
+
+    .badge-danger { 
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .badge-success { 
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .roster {
+      display: flex;
+      gap: 6px;
+    }
+
+    .roster-slot {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: #f9f9f9;
+      text-align: center;
+      font-size: 0.8em;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .roster-slot:hover {
+      background: #f0f0f0;
+    }
+
+    .roster-slot.filled {
+      background: #e6f1fb;
+      border-color: #85b7eb;
+      color: #0c447c;
+      font-weight: 500;
+    }
+
+    .roster-slot.filled:hover {
+      background: #d0e5f7;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .modal-body {
+      margin-bottom: 16px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      font-size: 0.9em;
+      margin-bottom: 12px;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: #666;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      font-size: 0.9em;
+      cursor: pointer;
+      font-weight: 600;
+      border-radius: 4px;
+    }
+
+    .btn-primary {
+      background: #333;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #555;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .person-info {
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      text-align: center;
+      font-size: 1.1em;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .all-names-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .all-names-list li {
+      padding: 10px 12px;
+      margin: 4px 0;
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .all-names-list li .name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .all-names-list li .btn-remove-small {
+      padding: 4px 10px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.75em;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .all-names-list li .btn-remove-small:hover {
+      background: #c82333;
+    }
+
+    footer {
+      background: white;
+      padding: 12px;
+      margin-top: 12px;
+      text-align: center;
+      border: 1px solid #e0e0e0;
+    }
+
+    @media (max-width: 600px) {
+      .roster {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="loading" class="loading">Loading shift data...</div>
+
+  <div id="main-content" style="display: none;">
+    <header>
+      <h1>Hagerstown Security Shift Signup</h1>
+      <h2>Chambersburg Volunteers</h2>
+      <div class="info-text">Each shift needs at least 2 people, more than 2 is acceptable</div>
+      <div class="subtitle">Sunday, May 31, 2026</div>
+    </header>
+
+    <div id="shifts"></div>
+
+    <footer>
+      <button class="btn btn-danger" onclick="clearAll()">Clear All Sign-Ups</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="signup-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">Sign Up for Shift</div>
+    <div class="modal-body">
+      <div id="signup-shift-info" style="margin-bottom: 12px; color: #666; font-size: 0.9em;"></div>
+      <input type="text" id="signup-name" class="modal-input" placeholder="Enter your name" />
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeSignupModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSignup()">Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<div id="remove-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">Remove Sign-Up</div>
+    <div class="modal-body">
+      <div class="person-info" id="remove-person-name"></div>
+      <input type="text" id="remove-verify-name" class="modal-input" placeholder="Enter your name to confirm removal" />
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeRemoveModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmRemove()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<div id="view-all-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header" id="view-all-header">All Sign-Ups</div>
+    <div class="modal-body">
+      <ul class="all-names-list" id="all-names-list"></ul>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeViewAllModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// IMPORTANT: Replace this with your deployed Google Apps Script URL
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMdr1JNp42wxIMjLrwn2Ap9WafAHAeo4ODf5wXoT5vQ8NlTCPzsM83dAmGIGnpYwAx/exec;
+
+const SHIFTS = [
+  { id: 1, time: "7:30 AM – 12:30 PM", day: "Sunday", date: "May 31" },
+  { id: 2, time: "12:30 PM – 5:00 PM", day: "Sunday", date: "May 31" },
+  { id: 3, time: "5:00 PM – 10:30 PM", day: "Sunday", date: "May 31" },
+  { id: 4, time: "10:30 PM – 3:00 AM", day: "Sunday", date: "May 31" },
+  { id: 5, time: "3:00 AM – 7:30 AM", day: "Monday", date: "June 1" }
+];
+
+const MIN = 2;
+const ADMIN_PASSWORD = "cknauer";
+
+let data = {};
+let currentShiftId = null;
+let currentSlotIndex = null;
+let currentPersonName = null;
+
+async function loadData() {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?action=getData`);
+    const result = await response.json();
+
+    if (result.success) {
+      data = result.data || {};
+      SHIFTS.forEach(s => {
+        if (!data[s.id]) data[s.id] = [];
+      });
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      render();
+    } else {
+      throw new Error('Failed to load data');
+    }
+  } catch (error) {
+    console.error('Error loading data:', error);
+    alert('Error loading shift data. Please refresh the page.');
+  }
+}
+
+async function saveData() {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?action=saveData`, {
+      method: 'POST',
+      body: JSON.stringify({ data: data })
+    });
+    const result = await response.json();
+    return result.success;
+  } catch (error) {
+    console.error('Error saving data:', error);
+    return false;
+  }
+}
+
+async function sendNotification(shiftId, action, name) {
+  const shift = SHIFTS.find(s => s.id === shiftId);
+  const count = (data[shiftId] || []).length;
+
+  try {
+    await fetch(`${SCRIPT_URL}?action=sendNotification`, {
+      method: 'POST',
+      body: JSON.stringify({
+        shiftTime: `${shift.time} (${shift.day}, ${shift.date})`,
+        action: action,
+        name: name,
+        count: count,
+        url: window.location.href
+      })
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+}
+
+function render() {
+  const container = document.getElementById('shifts');
+  container.innerHTML = '';
+
+  SHIFTS.forEach(shift => {
+    const people = data[shift.id] || [];
+    const count = people.length;
+    const needsMore = count < MIN;
+    let badge = needsMore ? 'badge-danger' : 'badge-success';
+
+    const div = document.createElement('div');
+    div.className = 'shift';
+
+    const rosterSlots = Array.from({ length: 3 }, (_, i) => {
+      const name = people[i];
+      if (name) {
+        return `<div class="roster-slot filled" onclick="event.stopPropagation(); openRemoveModal(${shift.id}, ${i}, '${name.replace(/'/g, "\'")}')">${name}</div>`;
+      }
+      return `<div class="roster-slot" onclick="event.stopPropagation(); openSignupModal(${shift.id})">—</div>`;
+    }).join('');
+
+    div.innerHTML = `
+      <div class="shift-header">
+        <div>
+          <span class="shift-time">${shift.time}</span>
+          <span class="shift-date">${shift.day}, ${shift.date}</span>
+        </div>
+        <span class="badge ${badge}" onclick="event.stopPropagation(); openViewAllModal(${shift.id})">${count}/2</span>
+      </div>
+      <div class="roster">${rosterSlots}</div>
+    `;
+
+    div.onclick = () => openSignupModal(shift.id);
+    container.appendChild(div);
+  });
+}
+
+function openSignupModal(shiftId) {
+  const shift = SHIFTS.find(s => s.id === shiftId);
+  currentShiftId = shiftId;
+  document.getElementById('signup-shift-info').textContent = `${shift.time} (${shift.day}, ${shift.date})`;
+  document.getElementById('signup-name').value = '';
+  document.getElementById('signup-modal').classList.add('active');
+  document.getElementById('signup-name').focus();
+}
+
+function closeSignupModal() {
+  document.getElementById('signup-modal').classList.remove('active');
+  currentShiftId = null;
+}
+
+async function confirmSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+
+  if (!name) {
+    alert('Please enter your name');
+    return;
+  }
+
+  const people = data[currentShiftId] || [];
+
+  if (people.includes(name)) {
+    alert('You are already signed up for this shift');
+    return;
+  }
+
+  people.push(name);
+  data[currentShiftId] = people;
+
+  const saved = await saveData();
+  if (saved) {
+    await sendNotification(currentShiftId, 'Signed up', name);
+    closeSignupModal();
+    render();
+  } else {
+    alert('Error saving signup. Please try again.');
+  }
+}
+
+function openRemoveModal(shiftId, slotIndex, personName) {
+  currentShiftId = shiftId;
+  currentSlotIndex = slotIndex;
+  currentPersonName = personName;
+
+  document.getElementById('remove-person-name').textContent = personName;
+  document.getElementById('remove-verify-name').value = '';
+  document.getElementById('remove-modal').classList.add('active');
+  document.getElementById('remove-verify-name').focus();
+}
+
+function closeRemoveModal() {
+  document.getElementById('remove-modal').classList.remove('active');
+  currentShiftId = null;
+  currentSlotIndex = null;
+  currentPersonName = null;
+}
+
+async function confirmRemove() {
+  const enteredName = document.getElementById('remove-verify-name').value.trim();
+
+  if (!enteredName) {
+    alert('Please enter your name to confirm');
+    return;
+  }
+
+  if (enteredName !== currentPersonName) {
+    alert('Name does not match. Removal cancelled.');
+    return;
+  }
+
+  data[currentShiftId].splice(currentSlotIndex, 1);
+
+  const saved = await saveData();
+  if (saved) {
+    await sendNotification(currentShiftId, 'Removed', currentPersonName);
+    closeRemoveModal();
+    render();
+  } else {
+    alert('Error removing signup. Please try again.');
+  }
+}
+
+function openViewAllModal(shiftId) {
+  const shift = SHIFTS.find(s => s.id === shiftId);
+  const people = data[shiftId] || [];
+
+  document.getElementById('view-all-header').textContent = `All Sign-Ups: ${shift.time}`;
+
+  const list = document.getElementById('all-names-list');
+  list.innerHTML = '';
+
+  if (people.length === 0) {
+    list.innerHTML = '<li style="text-align: center; color: #999;">No sign-ups yet</li>';
+  } else {
+    people.forEach((name, index) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="name">${name}</span>
+        <button class="btn-remove-small" onclick="removeFromList(${shiftId}, ${index}, '${name.replace(/'/g, "\'")}')">Remove</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById('view-all-modal').classList.add('active');
+}
+
+function closeViewAllModal() {
+  document.getElementById('view-all-modal').classList.remove('active');
+}
+
+async function removeFromList(shiftId, index, personName) {
+  const enteredName = prompt('To remove this sign-up, please enter your name:');
+
+  if (!enteredName) {
+    return;
+  }
+
+  if (enteredName.trim() !== personName) {
+    alert('Name does not match. Removal cancelled.');
+    return;
+  }
+
+  data[shiftId].splice(index, 1);
+
+  const saved = await saveData();
+  if (saved) {
+    await sendNotification(shiftId, 'Removed', personName);
+    render();
+    openViewAllModal(shiftId);
+  } else {
+    alert('Error removing signup. Please try again.');
+  }
+}
+
+async function clearAll() {
+  const password = prompt('Enter admin password to clear all sign-ups:');
+
+  if (!password) {
+    return;
+  }
+
+  if (password !== ADMIN_PASSWORD) {
+    alert('Incorrect password. Access denied.');
+    return;
+  }
+
+  if (confirm('Are you sure you want to clear ALL sign-ups? This cannot be undone.')) {
+    SHIFTS.forEach(s => data[s.id] = []);
+    const saved = await saveData();
+    if (saved) {
+      render();
+      alert('All sign-ups have been cleared');
+    } else {
+      alert('Error clearing signups. Please try again.');
+    }
+  }
+}
+
+document.getElementById('signup-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSignupModal();
+});
+
+document.getElementById('remove-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeRemoveModal();
+});
+
+document.getElementById('view-all-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeViewAllModal();
+});
+
+document.getElementById('signup-name').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') confirmSignup();
+});
+
+document.getElementById('remove-verify-name').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') confirmRemove();
+});
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>
